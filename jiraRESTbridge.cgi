@@ -182,7 +182,8 @@ sub processOauthVerifier {
     print STDERR "sending header with access_token_cookie\n" if $DEBUG;
     $access_token_cookie = $q->cookie(
         -name  => 'jira_access_token',
-        -value => $oauth->get_access_token_crypt()
+        -value => $oauth->get_access_token_crypt(),
+        -expires => '+2y'
     );
     print STDERR "Access token saved\n" if $DEBUG;
 
