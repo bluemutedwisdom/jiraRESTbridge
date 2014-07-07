@@ -20,12 +20,13 @@
 
 use strict vars;
 use JSON;
-use lib '/opt/pptools/lib';
 use Optconfig;
 use Jira_OAuth;
 use CGI;
 use URI;
 use URI::Escape;
+use Log::Log4perl qw(:easy);
+
 
 my ( $access_token_cookie, $oauth_token, $request_token_secret_cookie,
     $verifier_token, $callback_url );
@@ -41,15 +42,19 @@ my $opt = Optconfig->new(
         request_token_path   => "/plugins/servlet/oauth/request-token",
         authorize_token_path => "/plugins/servlet/oauth/authorize",
         access_token_path    => "/plugins/servlet/oauth/access-token",
+        logconfig => "/usr/local/etc/jirarestbridge_log4perl.conf",
         debug => 0
     }
 );
 my $DEBUG=$opt->{debug};
+my $log_config_file=$opt->{'logconfig'};
+Log::Log4perl::init($log_config_file);
+my $logger = Log::Log4perl->get_logger('jirarestbridge');
 
 # initialize CGI and request path
 my $q            = new CGI;
 
-print STDERR "found body: " . $q->param('PUTDATA') . "\n";
+$logger->debug("found body: " . $q->param('PUTDATA')) if $q->param('PUTDATA');
 $q->{cookies_to_send}=[];
 my $uri=URI->new($q->self_url);
 my $target_path=$q->path_info;
@@ -102,14 +107,14 @@ if ( $target_path[0] eq 'rest' ) {
     # Attempt to load access token from cookie
     my $access_token = undef;
     if ( $q->cookie('jira_access_token') ) {
-        print STDERR "Access token found in cookie\n" if $DEBUG;
+        $logger->debug("Access token found in cookie\n");
         $access_token = $q->cookie('jira_access_token');
         $oauth->set_access_token_from_crypt( $access_token, nocroak => 1 );
     }
     # OR handle request for access_token comming in on URL param
     if($q->url_param('jira_access_token'))
     {
-        print STDERR "Access token found in URL param\n" if $DEBUG;
+        $logger->debug("Access token found in URL param");;
         $oauth->set_access_token_from_crypt( uri_unescape($q->url_param('jira_access_token')), nocroak => 1 );
     }
 
@@ -123,7 +128,7 @@ if ( $target_path[0] eq 'rest' ) {
         && $q->url_param('oauth_verifier')
         && $q->url_param('oauth_token') )
     {
-        print STDERR "Verifier token found in URL\n" if $DEBUG;
+        $logger->debug("Verifier token found in URL");
         processOauthVerifier(
             $q,
             $oauth,
@@ -137,7 +142,7 @@ if ( $target_path[0] eq 'rest' ) {
         body   => ($ENV{'REQUEST_METHOD'} ? $q->param($ENV{'REQUEST_METHOD'} . 'DATA'): '')
     };
 
-    print STDERR "sending body:" . $ENV{'REQUEST_METHOD'} . 'DATA' .  $q->param($ENV{'REQUEST_METHOD'} . 'DATA') . "\n";
+    $logger->debug("sending body:" . $ENV{'REQUEST_METHOD'} . 'DATA' .  $q->param($ENV{'REQUEST_METHOD'} . 'DATA') );
     doHttpRequest( $q, $oauth, $request );
     exit;
 }
@@ -179,13 +184,13 @@ sub processOauthVerifier {
     }
 
     # Save access token into cookie
-    print STDERR "sending header with access_token_cookie\n" if $DEBUG;
+    $logger->debug("sending header with access_token_cookie");
     $access_token_cookie = $q->cookie(
         -name  => 'jira_access_token',
         -value => $oauth->get_access_token_crypt(),
         -expires => '+2y'
     );
-    print STDERR "Access token saved\n" if $DEBUG;
+    $logger->debug("Access token saved\n");
 
     my $uri=URI->new($q->self_url);
     my %parms=$uri->query_form;
@@ -210,7 +215,7 @@ sub processOauthVerifier {
         -uri    => $redirect_url,
         -cookie => [$request_token_secret_cookie,$access_token_cookie]
     );
-    print STDERR "URI redirect after access_token: " . $uri->as_string . "\n" if $DEBUG;
+    $logger->debug("URI redirect after access_token: " . $uri->as_string);
 
     exit;
 }
@@ -230,7 +235,7 @@ sub doHttpRequest {
 
     my $url_to_fetch= $request->{path} . ( $uri->query ? "?" . $uri->query : "");
 
-    print STDERR "fetching $request->{method}: " . $oauth->_getUriFromString($url_to_fetch) . "\n" if $DEBUG;
+    $logger->debug("fetching $request->{method}: " . $oauth->_getUriFromString($url_to_fetch));
 
     my $response = $oauth->make_request(
         $request->{method},
@@ -277,7 +282,7 @@ sub makeOauth {
 # initiatest the oauth request and returns the auth URL
 sub initiateOauthRequest {
     my $oauth=shift;
-    print STDERR "Requesting request token\n" if $DEBUG;
+    $logger->debug("Requesting request token");
     $oauth->request_request_token();
 
     return $oauth->generate_auth_request_url();
@@ -300,7 +305,7 @@ sub redirectToAuth {
         -location    => $authUrl,
         -cookie => $request_token_secret_cookie
     );
-    print STDERR "Auth request URL: $authUrl\n" if $DEBUG;
+    $logger->debug("Auth request URL: $authUrl");
     exit;
 }
 
