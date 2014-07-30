@@ -1,5 +1,5 @@
 NAME=jiraRESTbridge
-VERSION=1.1.1
+VERSION=1.1.2
 RELEASE=1
 SOURCE=$(NAME)-$(VERSION).tar.gz
 EXES=jiraRESTbridge.cgi
