@@ -19,6 +19,7 @@
 
 
 use strict vars;
+use lib '/usr/local/lib';
 use JSON;
 use Optconfig;
 use Jira_OAuth;
