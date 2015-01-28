@@ -1,11 +1,11 @@
-NAME=jiraRESTbridge
+NAME=jirarestbridge
 VERSION=1.1.2
-RELEASE=1
+RELEASE=4
 SOURCE=$(NAME)-$(VERSION).tar.gz
 EXES=jiraRESTbridge.cgi
 LIBS=Jira_OAuth.pm
 CONFS=jirarestbridge_log4perl.conf jiraRESTbridge.conf
-ARCH=noarch
+ARCH=all
 # PREFIX=/var/www/jiraRESTbridge
 CLEAN_TARGETS=$(SPEC) $(NAME)-$(VERSION) $(SOURCE) # for in-house package
 
