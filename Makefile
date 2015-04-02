@@ -1,6 +1,6 @@
 NAME=jiraRESTbridge
 VERSION=1.1.2
-RELEASE=1
+RELEASE=2
 SOURCE=$(NAME)-$(VERSION).tar.gz
 EXES=jiraRESTbridge.cgi
 LIBS=Jira_OAuth.pm
